@@ -1,0 +1,6 @@
+# Output of the go coverage tool, created with `go test -coverprofile`
+*.out
+
+# Generated folders
+working-dir/
+/bin
