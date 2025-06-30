@@ -10,25 +10,34 @@ import (
 // LumenToolRunner is the function that would be registered with an MCP server or agent tooling platform.
 // It acts as a bridge between the agent's tool call and our Go library.
 func LumenToolRunner(catalogRef, ocpVersion, packageName, channelName string, listCatalogs bool) (string, error) {
+	var (
+		result any
+		err    error
+	)
 
-	// 1. Create the options struct from the parameters provided by the agent.
-	opts := list.ListOptions{
-		Catalog:     catalogRef,
-		Catalogs:    listCatalogs,
-		OCPVersion:  ocpVersion,
-		PackageName: packageName,
-		ChannelName: channelName,
+	lister := list.NewCatalogLister()
+
+	switch {
+	case listCatalogs:
+		result, err = lister.Catalogs(ocpVersion)
+	case packageName != "":
+		if channelName != "" {
+			result, err = lister.BundleVersionsByChannel(catalogRef, packageName, channelName)
+		} else {
+			result, err = lister.ChannelsByPackage(catalogRef, packageName)
+		}
+	case catalogRef != "":
+		result, err = lister.PackagesByCatalog(catalogRef)
+	default:
+		return "", fmt.Errorf("invalid set of options provided to lumen tool")
 	}
 
-	// 2. Call the library's main function.
-	listImpl := list.NewListImpl(opts)
-	results, err := listImpl.List()
 	if err != nil {
 		return "", fmt.Errorf("lumen tool failed: %w", err)
 	}
 
-	// 3. Serialize the concrete Results struct into JSON for the agent to understand.
-	jsonResult, err := json.MarshalIndent(results, "", "  ")
+	// 3. Serialize the concrete result into JSON for the agent to understand.
+	jsonResult, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to serialize lumen results: %w", err)
 	}

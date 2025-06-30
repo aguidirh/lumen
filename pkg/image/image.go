@@ -1,3 +1,4 @@
+// Package image provides functions for container image operations.
 package image
 
 import (
@@ -11,11 +12,24 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
-// RemoteInfoFunc is a function variable that can be swapped for testing.
-var RemoteInfoFunc = RemoteInfo
+// loger defines the interface this package expects for logging.
+type loger interface {
+	Infof(format string, args ...interface{})
+	Debugf(format string, args ...interface{})
+}
+
+// Imager provides methods for container image operations.
+type Imager struct {
+	log loger
+}
+
+// NewImager creates a new Imager instance.
+func NewImager(log loger) *Imager {
+	return &Imager{log: log}
+}
 
 // PolicyContext returns a default policy context for container image operations.
-func PolicyContext() (*signature.PolicyContext, error) {
+func (i *Imager) PolicyContext() (*signature.PolicyContext, error) {
 	policy, err := signature.DefaultPolicy(nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting default policy: %w", err)
@@ -28,8 +42,8 @@ func PolicyContext() (*signature.PolicyContext, error) {
 }
 
 // CopyToOci copies an image from a Docker registry to a local OCI layout.
-func CopyToOci(imageRef, ociDir string) (string, error) {
-	fmt.Printf("INFO: Copying image %s to OCI layout at %s...\n", imageRef, ociDir)
+func (i *Imager) CopyToOci(imageRef, ociDir string) (string, error) {
+	i.log.Debugf("Copying image %s to OCI layout at %s...", imageRef, ociDir)
 	srcRef, err := alltransports.ParseImageName("docker://" + imageRef)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse source image name: %w", err)
@@ -40,7 +54,7 @@ func CopyToOci(imageRef, ociDir string) (string, error) {
 		return "", fmt.Errorf("failed to parse destination image name: %w", err)
 	}
 
-	policyCtx, err := PolicyContext()
+	policyCtx, err := i.PolicyContext()
 	if err != nil {
 		return "", err
 	}
@@ -54,19 +68,19 @@ func CopyToOci(imageRef, ociDir string) (string, error) {
 	}
 
 	d := digest.FromBytes(manifestBytes)
-	fmt.Printf("INFO: Successfully copied image. Digest: %s\n", d.String())
+	i.log.Debugf("Successfully copied image. Digest: %s", d.String())
 	return d.String(), nil
 }
 
 // RemoteInfo retrieves the name, tag, and digest of a remote image.
-func RemoteInfo(imageRef string) (string, string, digest.Digest, error) {
-	fmt.Printf("INFO: Retrieving remote information for %s...\n", imageRef)
+func (i *Imager) RemoteInfo(imageRef string) (string, string, digest.Digest, error) {
+	i.log.Debugf("Retrieving remote information for %s...", imageRef)
 	srcRef, err := alltransports.ParseImageName("docker://" + imageRef)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to parse image name: %w", err)
 	}
 
-	policyCtx, err := PolicyContext()
+	policyCtx, err := i.PolicyContext()
 	if err != nil {
 		return "", "", "", err
 	}
@@ -97,6 +111,6 @@ func RemoteInfo(imageRef string) (string, string, digest.Digest, error) {
 		tag = tagged.Tag()
 	}
 
-	fmt.Printf("INFO: Successfully retrieved remote information for %s\n", imageRef)
+	i.log.Debugf("Successfully retrieved remote information for %s", imageRef)
 	return repoName, tag, d, nil
 }

@@ -4,15 +4,19 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/aguidirh/lumen/pkg/catalog"
-	"github.com/aguidirh/lumen/pkg/image"
+	"github.com/opencontainers/go-digest"
+	"github.com/operator-framework/operator-registry/alpha/declcfg"
 )
+
+// imager defines the interface this package expects for image operations.
+type imager interface {
+	RemoteInfo(imageRef string) (string, string, digest.Digest, error)
+}
 
 // Package represents a package (operator) in the catalog.
 type Package struct {
 	Name           string
 	DefaultChannel string
-	Content        []*ChannelEntry `json:"content"`
 }
 
 // Channel represents a channel in a package.
@@ -26,65 +30,39 @@ type ChannelEntry struct {
 	Name string
 }
 
-// Results holds the structured output from a List operation.
-type Results struct {
-	Packages []Package
-	Channels []Channel
-	Versions []ChannelEntry
-	Catalogs []string
+// loger defines the interface this package expects for logging operations.
+type loger interface {
+	Infof(format string, args ...interface{})
+	Info(args ...interface{})
+	Debugf(format string, args ...interface{})
 }
 
-type ListOptions struct {
-	Catalog     string
-	Catalogs    bool
-	OCPVersion  string
-	PackageName string
-	ChannelName string
+// cataloger defines the interface this package expects for catalog operations.
+type cataloger interface {
+	CatalogConfig(imageRef string) (*declcfg.DeclarativeConfig, error)
 }
 
-type ListImpl struct {
-	opts ListOptions
+// CatalogLister holds dependencies for listing operations.
+type CatalogLister struct {
+	log       loger
+	cataloger cataloger
+	imager    imager
 }
 
-func NewListImpl(opts ListOptions) *ListImpl {
-	return &ListImpl{opts: opts}
-}
-
-// TODO: add a log to tell the user what is being done.
-// List lists catalog contents based on the provided options.
-func (l *ListImpl) List() (Results, error) {
-	if !l.opts.Catalogs && l.opts.Catalog == "" {
-		return Results{}, fmt.Errorf("catalog reference is required, unless --catalogs is specified")
+// NewCatalogLister creates a new Lister.
+func NewCatalogLister(log loger, cataloger cataloger, imager imager) *CatalogLister {
+	return &CatalogLister{
+		log:       log,
+		cataloger: cataloger,
+		imager:    imager,
 	}
-
-	var results Results
-	var err error
-
-	switch {
-	case l.opts.Catalogs:
-		if len(l.opts.OCPVersion) == 0 {
-			return Results{}, fmt.Errorf("a version is required when listing catalogs")
-		}
-		results.Catalogs, err = catalogs(l.opts.OCPVersion)
-	case len(l.opts.PackageName) > 0:
-		if len(l.opts.ChannelName) > 0 {
-			results.Versions, err = bundleVersionsByChannel(l.opts.Catalog, l.opts.PackageName, l.opts.ChannelName)
-		} else {
-			results.Channels, err = channelsByPackage(l.opts.Catalog, l.opts.PackageName)
-		}
-	case len(l.opts.Catalog) > 0:
-		results.Packages, err = packagesByCatalog(l.opts.Catalog)
-	default:
-		return Results{}, fmt.Errorf("invalid set of options provided")
-	}
-
-	if err != nil {
-		return Results{}, err
-	}
-	return results, nil
 }
 
-func catalogs(version string) ([]string, error) {
+func (c *CatalogLister) Catalogs(version string) ([]string, error) {
+	if len(version) == 0 {
+		return nil, fmt.Errorf("a version is required when listing catalogs")
+	}
+	c.log.Debugf("Searching for operator catalogs for version %s...", version)
 	repos := []string{
 		"registry.redhat.io/redhat/redhat-operator-index",
 		"registry.redhat.io/redhat/certified-operator-index",
@@ -101,8 +79,10 @@ func catalogs(version string) ([]string, error) {
 		go func(repo string) {
 			defer wg.Done()
 			imageRef := fmt.Sprintf("%s:%s", repo, tag)
-			if _, _, _, err := image.RemoteInfoFunc(imageRef); err == nil {
+			if _, _, _, err := c.imager.RemoteInfo(imageRef); err == nil {
 				catalogsCh <- imageRef
+			} else {
+				c.log.Debugf("Catalog %s not found, skipping...", imageRef)
 			}
 		}(repo)
 	}
@@ -119,11 +99,16 @@ func catalogs(version string) ([]string, error) {
 		return nil, fmt.Errorf("no catalogs found for version %s", version)
 	}
 
+	c.log.Debugf("Found %d catalogs.", len(catalogs))
 	return catalogs, nil
 }
 
-func packagesByCatalog(catalogRef string) ([]Package, error) {
-	cfg, err := catalog.CatalogConfig(catalogRef)
+func (c *CatalogLister) PackagesByCatalog(catalogRef string) ([]Package, error) {
+	if catalogRef == "" {
+		return nil, fmt.Errorf("catalog reference is required")
+	}
+	c.log.Debugf("Listing packages for catalog %s...", catalogRef)
+	cfg, err := c.cataloger.CatalogConfig(catalogRef)
 	if err != nil {
 		return nil, err
 	}
@@ -136,11 +121,16 @@ func packagesByCatalog(catalogRef string) ([]Package, error) {
 		})
 	}
 
+	c.log.Debugf("Found %d packages.", len(packages))
 	return packages, nil
 }
 
-func channelsByPackage(catalogRef, pkgName string) ([]Channel, error) {
-	cfg, err := catalog.CatalogConfig(catalogRef)
+func (c *CatalogLister) ChannelsByPackage(catalogRef, pkgName string) ([]Channel, error) {
+	if catalogRef == "" || pkgName == "" {
+		return nil, fmt.Errorf("catalog reference and package name are required")
+	}
+	c.log.Debugf("Listing channels for package %s in catalog %s...", pkgName, catalogRef)
+	cfg, err := c.cataloger.CatalogConfig(catalogRef)
 	if err != nil {
 		return nil, err
 	}
@@ -163,11 +153,16 @@ func channelsByPackage(catalogRef, pkgName string) ([]Channel, error) {
 		return nil, fmt.Errorf("package %q not found in catalog", pkgName)
 	}
 
+	c.log.Debugf("Found %d channels.", len(channels))
 	return channels, nil
 }
 
-func bundleVersionsByChannel(catalogRef, pkgName, channelName string) ([]ChannelEntry, error) {
-	cfg, err := catalog.CatalogConfig(catalogRef)
+func (c *CatalogLister) BundleVersionsByChannel(catalogRef, pkgName, channelName string) ([]ChannelEntry, error) {
+	if catalogRef == "" || pkgName == "" || channelName == "" {
+		return nil, fmt.Errorf("catalog reference, package name, and channel name are required")
+	}
+	c.log.Debugf("Listing bundle versions for channel %s in package %s, catalog %s...", channelName, pkgName, catalogRef)
+	cfg, err := c.cataloger.CatalogConfig(catalogRef)
 	if err != nil {
 		return nil, err
 	}
@@ -180,6 +175,7 @@ func bundleVersionsByChannel(catalogRef, pkgName, channelName string) ([]Channel
 					Name: entry.Name,
 				})
 			}
+			c.log.Debugf("Found %d bundle versions.", len(entries))
 			return entries, nil
 		}
 	}

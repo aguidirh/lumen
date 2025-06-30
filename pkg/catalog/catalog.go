@@ -4,23 +4,57 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/aguidirh/lumen/pkg/fsio"
-	"github.com/aguidirh/lumen/pkg/image"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/operator-framework/operator-registry/alpha/declcfg"
 )
 
-// TODO improve teh log mechanism to something more robust
+// loger defines the interface this package expects for logging.
+type loger interface {
+	Infof(format string, args ...interface{})
+	Info(args ...interface{})
+	Debugf(format string, args ...interface{})
+	Debug(args ...interface{})
+}
 
-func CatalogConfig(imageRef string) (*declcfg.DeclarativeConfig, error) {
-	name, tag, digest, err := image.RemoteInfo(imageRef)
+// imager defines the interface this package expects for image operations.
+type imager interface {
+	RemoteInfo(imageRef string) (string, string, digest.Digest, error)
+	CopyToOci(imageRef, ociDir string) (string, error)
+}
+
+// fsioer defines the interface this package expects for filesystem I/O.
+type fsioer interface {
+	CopyDirectory(src, dst string) error
+	UntarFromStream(r io.Reader, dest string) error
+}
+
+// Cataloger provides methods for introspecting catalogs.
+type Cataloger struct {
+	log    loger
+	imager imager
+	fsio   fsioer
+}
+
+// NewCataloger creates a new Cataloger with its dependencies.
+func NewCataloger(log loger, imager imager, fsio fsioer) *Cataloger {
+	return &Cataloger{
+		log:    log,
+		imager: imager,
+		fsio:   fsio,
+	}
+}
+
+func (c *Cataloger) CatalogConfig(imageRef string) (*declcfg.DeclarativeConfig, error) {
+	name, tag, digest, err := c.imager.RemoteInfo(imageRef)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get remote info for %s: %w", imageRef, err)
 	}
@@ -31,9 +65,9 @@ func CatalogConfig(imageRef string) (*declcfg.DeclarativeConfig, error) {
 	configsCachePath := filepath.Join("working-dir", "operator-catalogs", name, tag, safeDigest, "configs")
 	baseCachePath := filepath.Dir(configsCachePath)
 
-	fmt.Printf("INFO: Checking for cached catalog at %s...\n", configsCachePath)
+	c.log.Debugf("Checking for cached catalog at %s...", configsCachePath)
 	if _, err := os.Stat(configsCachePath); err != nil {
-		fmt.Println("INFO: Cache miss. Pulling image and extracting catalog...")
+		c.log.Debug("Cache miss. Pulling image and extracting catalog...")
 		// Create a temporary directory to pull the full OCI layout
 		tmpOciLayoutDir, err := os.MkdirTemp("", "lumen-oci-layout-")
 		if err != nil {
@@ -43,7 +77,7 @@ func CatalogConfig(imageRef string) (*declcfg.DeclarativeConfig, error) {
 
 		// Pull by digest to ensure we get the correct, immutable image version
 		imageRefWithDigest := fmt.Sprintf("%s@%s", name, digest)
-		if _, err := image.CopyToOci(imageRefWithDigest, tmpOciLayoutDir); err != nil {
+		if _, err := c.imager.CopyToOci(imageRefWithDigest, tmpOciLayoutDir); err != nil {
 			return nil, fmt.Errorf("failed to copy image to oci: %w", err)
 		}
 
@@ -53,7 +87,7 @@ func CatalogConfig(imageRef string) (*declcfg.DeclarativeConfig, error) {
 		}
 		defer os.RemoveAll(tmpExtractDir)
 
-		declarativeConfigDir, err := extractCatalogConfig(tmpOciLayoutDir, tmpExtractDir)
+		declarativeConfigDir, err := extractCatalogConfig(c.fsio, tmpOciLayoutDir, tmpExtractDir)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find and extract catalog: %w", err)
 		}
@@ -65,25 +99,25 @@ func CatalogConfig(imageRef string) (*declcfg.DeclarativeConfig, error) {
 
 		// Move the extracted 'configs' directory to its permanent cache location
 		sourceConfigsDir := filepath.Join(declarativeConfigDir, "configs")
-		if err := fsio.CopyDirectory(sourceConfigsDir, configsCachePath); err != nil {
+		if err := c.fsio.CopyDirectory(sourceConfigsDir, configsCachePath); err != nil {
 			return nil, fmt.Errorf("failed to copy configs to cache: %w", err)
 		}
 	} else {
-		fmt.Println("INFO: Cache hit. Loading catalog from existing directory.")
+		c.log.Debug("Cache hit. Loading catalog from existing directory.")
 	}
 
 	fsys := os.DirFS(configsCachePath)
 
-	fmt.Println("INFO: Loading declarative config from filesystem...")
+	c.log.Debug("Loading declarative config from filesystem...")
 	cfg, err := declcfg.LoadFS(context.Background(), fsys)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load declarative config: %w", err)
 	}
-	fmt.Println("INFO: Successfully loaded catalog config.")
+	c.log.Debug("Successfully loaded catalog config.")
 	return cfg, nil
 }
 
-func extractCatalogConfig(ociLayoutDir, tmpDir string) (string, error) {
+func extractCatalogConfig(fsSvc fsioer, ociLayoutDir, tmpDir string) (string, error) {
 	srcRef, err := alltransports.ParseImageName(fmt.Sprintf("oci:%s", ociLayoutDir))
 	if err != nil {
 		return "", fmt.Errorf("failed to parse oci layout name: %w", err)
@@ -117,7 +151,7 @@ func extractCatalogConfig(ociLayoutDir, tmpDir string) (string, error) {
 			return "", fmt.Errorf("failed to create temp dir for layer extraction: %w", err)
 		}
 
-		if err := fsio.UntarFromStream(blobStream, extractDir); err != nil {
+		if err := fsSvc.UntarFromStream(blobStream, extractDir); err != nil {
 			os.RemoveAll(extractDir)
 			blobStream.Close()
 			continue

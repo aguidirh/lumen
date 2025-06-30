@@ -1,3 +1,4 @@
+// Package fsio (file system I/O) provides functions for file system operations.
 package fsio
 
 import (
@@ -9,8 +10,16 @@ import (
 	"path/filepath"
 )
 
+// FsIO provides methods for file system operations.
+type FsIO struct{}
+
+// NewFsIO creates a new FsIO instance.
+func NewFsIO() *FsIO {
+	return &FsIO{}
+}
+
 // CopyDirectory recursively copies a directory from src to dst.
-func CopyDirectory(src, dst string) error {
+func (f *FsIO) CopyDirectory(src, dst string) error {
 	if err := os.MkdirAll(dst, 0755); err != nil {
 		return err
 	}
@@ -26,12 +35,12 @@ func CopyDirectory(src, dst string) error {
 		if info.IsDir() {
 			return os.MkdirAll(dstPath, info.Mode())
 		}
-		return CopyFile(path, dstPath)
+		return f.CopyFile(path, dstPath)
 	})
 }
 
 // CopyFile copies a single file from src to dst.
-func CopyFile(src, dst string) error {
+func (f *FsIO) CopyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
 		return err
@@ -49,7 +58,7 @@ func CopyFile(src, dst string) error {
 }
 
 // UntarFromStream reads a tar stream (potentially gzipped) and extracts it to a destination directory.
-func UntarFromStream(r io.Reader, dest string) error {
+func (f *FsIO) UntarFromStream(r io.Reader, dest string) error {
 	gzr, err := gzip.NewReader(r)
 	if err == nil {
 		// If it's a valid gzip stream, use the gzip reader.
