@@ -10,3 +10,6 @@ coverage.out
 
 # Test coverage
 /test/
+
+# MCP configuration for cursor
+mcp.json

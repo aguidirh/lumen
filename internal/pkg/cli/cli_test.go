@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/aguidirh/lumen/pkg/cli"
-	cliMock "github.com/aguidirh/lumen/pkg/cli/mock"
-	"github.com/aguidirh/lumen/pkg/list"
+	"github.com/aguidirh/lumen/internal/pkg/cli"
+	cliMock "github.com/aguidirh/lumen/internal/pkg/cli/mock"
+	"github.com/aguidirh/lumen/internal/pkg/list"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"

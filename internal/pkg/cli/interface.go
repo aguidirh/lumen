@@ -2,7 +2,7 @@
 
 package cli
 
-import "github.com/aguidirh/lumen/pkg/list"
+import "github.com/aguidirh/lumen/internal/pkg/list"
 
 // Lister defines the interface for all listing operations used by the CLI.
 type Lister interface {

@@ -12,7 +12,7 @@ package mock
 import (
 	reflect "reflect"
 
-	list "github.com/aguidirh/lumen/pkg/list"
+	list "github.com/aguidirh/lumen/internal/pkg/list"
 	gomock "go.uber.org/mock/gomock"
 )
 

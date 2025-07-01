@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"github.com/aguidirh/lumen/pkg/log"
+	"github.com/aguidirh/lumen/internal/pkg/log"
 	"github.com/spf13/cobra"
 )
 

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aguidirh/lumen/pkg/image"
-	mock_image "github.com/aguidirh/lumen/pkg/image/mock"
+	"github.com/aguidirh/lumen/internal/pkg/image"
+	mock_image "github.com/aguidirh/lumen/internal/pkg/image/mock"
 	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,6 +48,7 @@ func TestImager_CopyToOci(t *testing.T) {
 	tempDir := t.TempDir()
 	ociDir := filepath.Join(tempDir, "oci")
 
+	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
 

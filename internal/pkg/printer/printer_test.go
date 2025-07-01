@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aguidirh/lumen/pkg/list"
-	"github.com/aguidirh/lumen/pkg/printer/mock"
+	"github.com/aguidirh/lumen/internal/pkg/list"
+	"github.com/aguidirh/lumen/internal/pkg/printer/mock"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )

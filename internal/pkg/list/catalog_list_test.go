@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aguidirh/lumen/pkg/list/mock"
-	"github.com/aguidirh/lumen/pkg/log"
+	"github.com/aguidirh/lumen/internal/pkg/list/mock"
+	"github.com/aguidirh/lumen/internal/pkg/log"
 	"github.com/opencontainers/go-digest"
 	"github.com/operator-framework/operator-registry/alpha/declcfg"
 	"github.com/stretchr/testify/assert"

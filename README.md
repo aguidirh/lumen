@@ -1,5 +1,8 @@
-# lumen
+<p align="center">
+  <img src="./assets/logo.jpeg" alt="Lumen Logo" width="200"/>
+</p>
 
+----
 `lumen` is a command-line tool for introspecting the contents of OCI container images, with a special focus on operator-framework File-Based Catalogs (FBC). It allows you to pull catalog images, inspect and list their contents, without needing a running Kubernetes cluster.
 
 The name "lumen" is Latin for light. More specifically, it can mean a source of light, a brightness, or an opening for light to enter, like a window. The name was chosen because the tool acts as a lens, allowing you to peer into the contents of an container image, which is otherwise an opaque container image.
@@ -12,6 +15,7 @@ The name "lumen" is Latin for light. More specifically, it can mean a source of 
 -   **List Operator Versions**: Display all the operator versions available in a specific channel.
 -   **Configurable Logging**: Adjust log verbosity by using the flag `--log-level` which accepts (`debug`, `info`, `warn`, `error`).
 -   **Local Caching**: Caches extracted catalog data to speed up subsequent listings.
+-   **MCP Integration**: Includes an MCP (Model Context Protocol) server for AI assistant integration.
 
 ## Installation
 
@@ -76,6 +80,27 @@ prometheus-operator.v0.40.0
 ...
 ```
 
+## MCP Server Integration
+
+Lumen includes an MCP (Model Context Protocol) server that allows AI assistants to use Lumen's capabilities directly. This enables natural language queries about OpenShift operator catalogs.
+
+### Building the MCP Server
+```bash
+make build-mcp
+```
+
+### Testing the MCP Server
+```bash
+make test-mcp
+```
+
+### Setting up with AI Assistants
+See the **[MCP Setup Guide](docs/mcp/SETUP.md)** for detailed instructions on integrating with:
+- Cursor IDE
+- Claude Desktop
+- VSCode
+- Other MCP-compatible clients
+
 ## Testing
 
 You can run the full suite of unit tests using the `make` command:
@@ -96,6 +121,35 @@ This command will create a `coverage.out` file inside the `test/coverage/` direc
 
 ```bash
 make view-coverage
+```
+
+## Project Structure
+
+```
+lumen/
+├── server/                    # MCP server implementation
+│   ├── main.go               # MCP server binary
+│   └── main_test.go          # MCP server tests
+├── bin/                      # Built binaries
+│   ├── lumen                 # Main application
+│   └── mcp-server           # MCP server binary
+├── internal/                 # Internal packages and integrations
+│   ├── pkg/                 # Core library packages (not importable externally)
+│   │   ├── catalog/         # Catalog introspection
+│   │   ├── cli/             # Command-line interface
+│   │   ├── fsio/            # File system operations
+│   │   ├── image/           # Container image operations
+│   │   ├── list/            # Listing operations
+│   │   ├── log/             # Logging
+│   │   └── printer/         # Output formatting
+│   └── mcphandler/          # MCP handler implementation
+│       └── handler.go       # MCP-to-Lumen bridge
+├── docs/mcp/                # MCP documentation and configuration
+│   ├── cursor-config.json   # Cursor IDE configuration
+│   ├── claude-desktop-config.json  # Claude Desktop configuration
+│   ├── vscode-settings.json # VSCode configuration
+│   └── SETUP.md            # MCP setup and integration guide
+└── Makefile                 # Build automation
 ```
 
 ## How It Works

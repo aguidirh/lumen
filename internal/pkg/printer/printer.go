@@ -5,7 +5,7 @@ import (
 	"io"
 	"text/tabwriter"
 
-	"github.com/aguidirh/lumen/pkg/list"
+	"github.com/aguidirh/lumen/internal/pkg/list"
 )
 
 // Printer handles formatting and printing command output.

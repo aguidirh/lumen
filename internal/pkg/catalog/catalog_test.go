@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aguidirh/lumen/pkg/catalog"
-	catalogMock "github.com/aguidirh/lumen/pkg/catalog/mock"
+	"github.com/aguidirh/lumen/internal/pkg/catalog"
+	catalogMock "github.com/aguidirh/lumen/internal/pkg/catalog/mock"
 	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

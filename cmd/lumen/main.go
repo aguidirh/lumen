@@ -3,13 +3,13 @@ package main
 import (
 	"os"
 
-	"github.com/aguidirh/lumen/pkg/catalog"
-	"github.com/aguidirh/lumen/pkg/cli"
-	"github.com/aguidirh/lumen/pkg/fsio"
-	"github.com/aguidirh/lumen/pkg/image"
-	"github.com/aguidirh/lumen/pkg/list"
-	"github.com/aguidirh/lumen/pkg/log"
-	"github.com/aguidirh/lumen/pkg/printer"
+	"github.com/aguidirh/lumen/internal/pkg/catalog"
+	"github.com/aguidirh/lumen/internal/pkg/cli"
+	"github.com/aguidirh/lumen/internal/pkg/fsio"
+	"github.com/aguidirh/lumen/internal/pkg/image"
+	"github.com/aguidirh/lumen/internal/pkg/list"
+	"github.com/aguidirh/lumen/internal/pkg/log"
+	"github.com/aguidirh/lumen/internal/pkg/printer"
 )
 
 func main() {

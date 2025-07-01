@@ -1,19 +1,19 @@
-package mcp_integration
+package mcphandler
 
 import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/aguidirh/lumen/pkg/catalog"
-	"github.com/aguidirh/lumen/pkg/fsio"
-	"github.com/aguidirh/lumen/pkg/image"
-	"github.com/aguidirh/lumen/pkg/list"
-	"github.com/aguidirh/lumen/pkg/log"
+	"github.com/aguidirh/lumen/internal/pkg/catalog"
+	"github.com/aguidirh/lumen/internal/pkg/fsio"
+	"github.com/aguidirh/lumen/internal/pkg/image"
+	"github.com/aguidirh/lumen/internal/pkg/list"
+	"github.com/aguidirh/lumen/internal/pkg/log"
 )
 
-// LumenToolRunner is the function that would be registered with an MCP server or agent tooling platform.
-// It acts as a bridge between the agent's tool call and our Go library.
-func LumenToolRunner(catalogRef, ocpVersion, packageName, channelName string, listCatalogs bool) (string, error) {
+// LumenToolHandler is the function that would be registered with an MCP server or agent tooling platform.
+// It acts as a handler between the agent's tool call and our Go library.
+func LumenToolHandler(catalogRef, ocpVersion, packageName, channelName string, listCatalogs bool) (string, error) {
 	var (
 		result any
 		err    error

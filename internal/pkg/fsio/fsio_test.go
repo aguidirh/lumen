@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aguidirh/lumen/pkg/fsio"
+	"github.com/aguidirh/lumen/internal/pkg/fsio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
