@@ -1,42 +1,36 @@
 package cli
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
-func NewBundlesCmd(lister lister) *cobra.Command {
-	var bundlesOpts struct {
-		Catalog string
-		Package string
-		Channel string
-	}
-
-	listBundlesCmd := &cobra.Command{
+// NewBundlesCmd creates a new bundles command.
+func NewBundlesCmd(opts *LumenOptions) *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "bundles",
-		Short: "List bundle versions in a channel",
+		Short: "List all bundle versions in a channel.",
+		Long:  "List all available bundle versions for a specific channel of an operator.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			bundles, err := lister.BundleVersionsByChannel(bundlesOpts.Catalog, bundlesOpts.Package, bundlesOpts.Channel)
+			catalog, _ := cmd.Flags().GetString("catalog")
+			pkg, _ := cmd.Flags().GetString("package")
+			channel, _ := cmd.Flags().GetString("channel")
+
+			bundles, err := opts.lister.BundleVersionsByChannel(catalog, pkg, channel)
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("Bundle versions for package %q, channel %q:\n", bundlesOpts.Package, bundlesOpts.Channel)
-			for _, b := range bundles {
-				fmt.Println(b.Name)
-			}
-
+			opts.printer.PrintBundles(pkg, channel, bundles)
 			return nil
 		},
 	}
 
-	listBundlesCmd.Flags().StringVar(&bundlesOpts.Catalog, "catalog", "", "The catalog to list bundles from")
-	listBundlesCmd.Flags().StringVar(&bundlesOpts.Package, "package", "", "The package to list bundles for")
-	listBundlesCmd.Flags().StringVar(&bundlesOpts.Channel, "channel", "", "The channel to list bundles for")
-	listBundlesCmd.MarkFlagRequired("catalog")
-	listBundlesCmd.MarkFlagRequired("package")
-	listBundlesCmd.MarkFlagRequired("channel")
-	return listBundlesCmd
+	cmd.Flags().StringP("catalog", "c", "", "The catalog image to list bundles from")
+	cmd.Flags().StringP("package", "p", "", "The package to list bundles for")
+	cmd.Flags().StringP("channel", "C", "", "The channel to list bundles for")
+	cmd.MarkFlagRequired("catalog")
+	cmd.MarkFlagRequired("package")
+	cmd.MarkFlagRequired("channel")
+	return cmd
 }

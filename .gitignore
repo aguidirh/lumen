@@ -4,3 +4,9 @@
 # Generated folders
 working-dir/
 /bin
+
+# Test coverage
+coverage.out
+
+# Test coverage
+/test/

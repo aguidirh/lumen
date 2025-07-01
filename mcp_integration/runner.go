@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/aguidirh/lumen/pkg/catalog"
+	"github.com/aguidirh/lumen/pkg/fsio"
+	"github.com/aguidirh/lumen/pkg/image"
 	"github.com/aguidirh/lumen/pkg/list"
+	"github.com/aguidirh/lumen/pkg/log"
 )
 
 // LumenToolRunner is the function that would be registered with an MCP server or agent tooling platform.
@@ -15,7 +19,12 @@ func LumenToolRunner(catalogRef, ocpVersion, packageName, channelName string, li
 		err    error
 	)
 
-	lister := list.NewCatalogLister()
+	// In a real application, the log level might be configurable.
+	logger := log.New("error")
+	fs := fsio.NewFsIO()
+	imager := image.NewImager(logger)
+	cataloger := catalog.NewCataloger(logger, imager, fs)
+	lister := list.NewCatalogLister(logger, cataloger, imager)
 
 	switch {
 	case listCatalogs:

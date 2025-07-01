@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/aguidirh/lumen/pkg/catalog"
@@ -10,20 +9,18 @@ import (
 	"github.com/aguidirh/lumen/pkg/image"
 	"github.com/aguidirh/lumen/pkg/list"
 	"github.com/aguidirh/lumen/pkg/log"
+	"github.com/aguidirh/lumen/pkg/printer"
 )
 
 func main() {
 	logger := log.New("info")
+	fs := fsio.NewFsIO()
+	imager := image.NewImager(logger)
+	cataloger := catalog.NewCataloger(logger, imager, fs)
+	lister := list.NewCatalogLister(logger, cataloger, imager)
+	printer := printer.NewPrinter(os.Stdout, logger)
 
-	// Instantiate dependencies
-	fsioSvc := fsio.NewFsIO()
-	imageSvc := image.NewImager(logger)
-	catalogSvc := catalog.NewCataloger(logger, imageSvc, fsioSvc)
-	listSvc := list.NewCatalogLister(logger, catalogSvc, imageSvc)
-
-	rootCmd := cli.NewLumenCmd(listSvc, logger)
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+	if err := cli.NewLumenCmd(lister, printer).Execute(); err != nil {
+		logger.Fatal(err)
 	}
 }

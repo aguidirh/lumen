@@ -3,15 +3,7 @@ package list
 import (
 	"fmt"
 	"sync"
-
-	"github.com/opencontainers/go-digest"
-	"github.com/operator-framework/operator-registry/alpha/declcfg"
 )
-
-// imager defines the interface this package expects for image operations.
-type imager interface {
-	RemoteInfo(imageRef string) (string, string, digest.Digest, error)
-}
 
 // Package represents a package (operator) in the catalog.
 type Package struct {
@@ -30,27 +22,15 @@ type ChannelEntry struct {
 	Name string
 }
 
-// loger defines the interface this package expects for logging operations.
-type loger interface {
-	Infof(format string, args ...interface{})
-	Info(args ...interface{})
-	Debugf(format string, args ...interface{})
-}
-
-// cataloger defines the interface this package expects for catalog operations.
-type cataloger interface {
-	CatalogConfig(imageRef string) (*declcfg.DeclarativeConfig, error)
-}
-
 // CatalogLister holds dependencies for listing operations.
 type CatalogLister struct {
-	log       loger
-	cataloger cataloger
-	imager    imager
+	log       Logger
+	cataloger Cataloger
+	imager    Imager
 }
 
 // NewCatalogLister creates a new Lister.
-func NewCatalogLister(log loger, cataloger cataloger, imager imager) *CatalogLister {
+func NewCatalogLister(log Logger, cataloger Cataloger, imager Imager) *CatalogLister {
 	return &CatalogLister{
 		log:       log,
 		cataloger: cataloger,
@@ -135,6 +115,19 @@ func (c *CatalogLister) ChannelsByPackage(catalogRef, pkgName string) ([]Channel
 		return nil, err
 	}
 
+	// Check if package exists
+	pkgFound := false
+	for _, pkg := range cfg.Packages {
+		if pkg.Name == pkgName {
+			pkgFound = true
+			break
+		}
+	}
+
+	if !pkgFound {
+		return nil, fmt.Errorf("package %q not found in catalog %q", pkgName, catalogRef)
+	}
+
 	var channels []Channel
 	for _, ch := range cfg.Channels {
 		if ch.Package == pkgName {
@@ -147,10 +140,6 @@ func (c *CatalogLister) ChannelsByPackage(catalogRef, pkgName string) ([]Channel
 				Head: head,
 			})
 		}
-	}
-
-	if len(channels) == 0 {
-		return nil, fmt.Errorf("package %q not found in catalog", pkgName)
 	}
 
 	c.log.Debugf("Found %d channels.", len(channels))

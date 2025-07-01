@@ -1,44 +1,33 @@
 package cli
 
 import (
-	"fmt"
-	"os"
-	"text/tabwriter"
-
 	"github.com/spf13/cobra"
 )
 
-func NewChannelsCmd(lister lister) *cobra.Command {
-	var channelsOpts struct {
-		Catalog string
-		Package string
-	}
-
-	listChannelsCmd := &cobra.Command{
+// NewChannelsCmd creates a new channels command.
+func NewChannelsCmd(opts *LumenOptions) *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "channels",
-		Short: "List channels in a package",
+		Short: "List all channels for a package in a catalog.",
+		Long:  "List all available channels for a single operator package within a catalog.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			channels, err := lister.ChannelsByPackage(channelsOpts.Catalog, channelsOpts.Package)
+			catalog, _ := cmd.Flags().GetString("catalog")
+			pkg, _ := cmd.Flags().GetString("package")
+
+			channels, err := opts.lister.ChannelsByPackage(catalog, pkg)
 			if err != nil {
 				return err
 			}
 
-			w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-			defer w.Flush()
-
-			fmt.Fprintln(w, "NAME\tHEAD")
-			for _, ch := range channels {
-				fmt.Fprintf(w, "%s\t%s\n", ch.Name, ch.Head)
-			}
-
+			opts.printer.PrintChannels(channels)
 			return nil
 		},
 	}
 
-	listChannelsCmd.Flags().StringVar(&channelsOpts.Catalog, "catalog", "", "The catalog to list channels from")
-	listChannelsCmd.Flags().StringVar(&channelsOpts.Package, "package", "", "The package to list channels for")
-	listChannelsCmd.MarkFlagRequired("catalog")
-	listChannelsCmd.MarkFlagRequired("package")
-	return listChannelsCmd
+	cmd.Flags().StringP("catalog", "c", "", "The catalog image to list channels from")
+	cmd.Flags().StringP("package", "p", "", "The package to list channels for")
+	cmd.MarkFlagRequired("catalog")
+	cmd.MarkFlagRequired("package")
+	return cmd
 }

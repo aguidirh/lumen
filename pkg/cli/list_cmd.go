@@ -1,18 +1,20 @@
 package cli
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
-func NewListCmd(lister lister) *cobra.Command {
-	listCmd := &cobra.Command{
+// NewListCmd creates a new list command.
+func NewListCmd(opts *LumenOptions) *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List various resources from operator catalogs",
-		Long:  `The list command provides subcommands to list different kinds of resources, such as catalogs, packages, channels, and bundles.`,
+		Short: "List resources from an operator catalog.",
+		Long:  "List resources from an operator catalog, such as catalogs, packages, channels, and bundles.",
 	}
 
-	listCmd.AddCommand(NewCatalogsCmd(lister))
-	listCmd.AddCommand(NewPackagesCmd(lister))
-	listCmd.AddCommand(NewChannelsCmd(lister))
-	listCmd.AddCommand(NewBundlesCmd(lister))
-
-	return listCmd
+	cmd.AddCommand(NewCatalogsCmd(opts))
+	cmd.AddCommand(NewPackagesCmd(opts))
+	cmd.AddCommand(NewChannelsCmd(opts))
+	cmd.AddCommand(NewBundlesCmd(opts))
+	return cmd
 }

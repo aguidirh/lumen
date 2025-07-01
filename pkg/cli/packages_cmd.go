@@ -1,41 +1,29 @@
 package cli
 
 import (
-	"fmt"
-	"os"
-	"text/tabwriter"
-
 	"github.com/spf13/cobra"
 )
 
-func NewPackagesCmd(lister lister) *cobra.Command {
-	var packagesOpts struct {
-		Catalog string
-	}
-
-	listPackagesCmd := &cobra.Command{
+// NewPackagesCmd creates a new packages command.
+func NewPackagesCmd(opts *LumenOptions) *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "packages",
-		Short: "List packages (operators) in a catalog",
+		Short: "List all packages in a catalog.",
+		Long:  "List all packages (operators) in a given catalog image.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			packages, err := lister.PackagesByCatalog(packagesOpts.Catalog)
+			catalog, _ := cmd.Flags().GetString("catalog")
+
+			packages, err := opts.lister.PackagesByCatalog(catalog)
 			if err != nil {
 				return err
 			}
 
-			w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-			defer w.Flush()
-
-			fmt.Fprintln(w, "NAME\tDEFAULT CHANNEL")
-			for _, pkg := range packages {
-				fmt.Fprintf(w, "%s\t%s\n", pkg.Name, pkg.DefaultChannel)
-			}
-
+			opts.printer.PrintPackages(packages)
 			return nil
 		},
 	}
-
-	listPackagesCmd.Flags().StringVar(&packagesOpts.Catalog, "catalog", "", "The catalog to list packages from")
-	listPackagesCmd.MarkFlagRequired("catalog")
-	return listPackagesCmd
+	cmd.Flags().StringP("catalog", "c", "", "The catalog image to list packages from")
+	cmd.MarkFlagRequired("catalog")
+	return cmd
 }

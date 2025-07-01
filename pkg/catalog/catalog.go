@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -12,40 +11,19 @@ import (
 
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
-	"github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/operator-framework/operator-registry/alpha/declcfg"
 )
 
-// loger defines the interface this package expects for logging.
-type loger interface {
-	Infof(format string, args ...interface{})
-	Info(args ...interface{})
-	Debugf(format string, args ...interface{})
-	Debug(args ...interface{})
-}
-
-// imager defines the interface this package expects for image operations.
-type imager interface {
-	RemoteInfo(imageRef string) (string, string, digest.Digest, error)
-	CopyToOci(imageRef, ociDir string) (string, error)
-}
-
-// fsioer defines the interface this package expects for filesystem I/O.
-type fsioer interface {
-	CopyDirectory(src, dst string) error
-	UntarFromStream(r io.Reader, dest string) error
-}
-
 // Cataloger provides methods for introspecting catalogs.
 type Cataloger struct {
-	log    loger
-	imager imager
-	fsio   fsioer
+	log    Logger
+	imager Imager
+	fsio   FsIO
 }
 
 // NewCataloger creates a new Cataloger with its dependencies.
-func NewCataloger(log loger, imager imager, fsio fsioer) *Cataloger {
+func NewCataloger(log Logger, imager Imager, fsio FsIO) *Cataloger {
 	return &Cataloger{
 		log:    log,
 		imager: imager,
@@ -117,7 +95,7 @@ func (c *Cataloger) CatalogConfig(imageRef string) (*declcfg.DeclarativeConfig, 
 	return cfg, nil
 }
 
-func extractCatalogConfig(fsSvc fsioer, ociLayoutDir, tmpDir string) (string, error) {
+func extractCatalogConfig(fsSvc FsIO, ociLayoutDir, tmpDir string) (string, error) {
 	srcRef, err := alltransports.ParseImageName(fmt.Sprintf("oci:%s", ociLayoutDir))
 	if err != nil {
 		return "", fmt.Errorf("failed to parse oci layout name: %w", err)

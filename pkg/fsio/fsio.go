@@ -3,9 +3,11 @@ package fsio
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 )
@@ -59,16 +61,30 @@ func (f *FsIO) CopyFile(src, dst string) error {
 
 // UntarFromStream reads a tar stream (potentially gzipped) and extracts it to a destination directory.
 func (f *FsIO) UntarFromStream(r io.Reader, dest string) error {
-	gzr, err := gzip.NewReader(r)
-	if err == nil {
-		// If it's a valid gzip stream, use the gzip reader.
-		r = gzr
-		defer gzr.Close()
+	// We need to peek at the first few bytes to determine if it's a gzipped stream.
+	buf := make([]byte, 512)
+	n, err := r.Read(buf)
+	if err != nil && err != io.EOF {
+		return err
 	}
-	// If it's not a gzip stream, err will be non-nil, and we'll proceed with the original reader `r`,
-	// effectively treating it as a plain tar stream.
 
-	tr := tar.NewReader(r)
+	// Create a new reader that prepends the peeked bytes to the original reader.
+	multiReader := io.MultiReader(bytes.NewReader(buf[:n]), r)
+
+	var tarReader io.Reader
+	contentType := http.DetectContentType(buf)
+	if contentType == "application/x-gzip" {
+		gzr, err := gzip.NewReader(multiReader)
+		if err != nil {
+			return err
+		}
+		defer gzr.Close()
+		tarReader = gzr
+	} else {
+		tarReader = multiReader
+	}
+
+	tr := tar.NewReader(tarReader)
 
 	for {
 		header, err := tr.Next()

@@ -69,11 +69,33 @@ To list all available bundles (versions) for a specific channel of an operator:
 ```
 **Output:**
 ```
-Bundle versions for package "prometheus", channel "beta":
+BUNDLE_VERSION
 prometheus-operator.v0.37.0
 prometheus-operator.v0.38.0
 prometheus-operator.v0.40.0
 ...
+```
+
+## Testing
+
+You can run the full suite of unit tests using the `make` command:
+
+```bash
+make test
+```
+
+### Test Coverage
+
+To generate a test coverage report, run the `test-coverage` target:
+
+```bash
+make test-coverage
+```
+
+This command will create a `coverage.out` file inside the `test/coverage/` directory. You can then view the detailed, interactive HTML report by running:
+
+```bash
+make view-coverage
 ```
 
 ## How It Works

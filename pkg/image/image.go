@@ -12,19 +12,13 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
-// loger defines the interface this package expects for logging.
-type loger interface {
-	Infof(format string, args ...interface{})
-	Debugf(format string, args ...interface{})
-}
-
 // Imager provides methods for container image operations.
 type Imager struct {
-	log loger
+	log Logger
 }
 
 // NewImager creates a new Imager instance.
-func NewImager(log loger) *Imager {
+func NewImager(log Logger) *Imager {
 	return &Imager{log: log}
 }
 
@@ -43,6 +37,8 @@ func (i *Imager) PolicyContext() (*signature.PolicyContext, error) {
 
 // CopyToOci copies an image from a Docker registry to a local OCI layout.
 func (i *Imager) CopyToOci(imageRef, ociDir string) (string, error) {
+	// TODO: add a progress bar and improve logging
+	i.log.Infof("Pulling image %s from registry...", imageRef)
 	i.log.Debugf("Copying image %s to OCI layout at %s...", imageRef, ociDir)
 	srcRef, err := alltransports.ParseImageName("docker://" + imageRef)
 	if err != nil {
@@ -68,6 +64,7 @@ func (i *Imager) CopyToOci(imageRef, ociDir string) (string, error) {
 	}
 
 	d := digest.FromBytes(manifestBytes)
+	i.log.Infof("Successfully pulled image %s\n\n", imageRef)
 	i.log.Debugf("Successfully copied image. Digest: %s", d.String())
 	return d.String(), nil
 }
