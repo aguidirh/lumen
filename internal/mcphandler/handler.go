@@ -19,8 +19,7 @@ func LumenToolHandler(catalogRef, ocpVersion, packageName, channelName string, l
 		err    error
 	)
 
-	// In a real application, the log level might be configurable.
-	logger := log.New("error")
+	logger := log.New("panic")
 	fs := fsio.NewFsIO()
 	imager := image.NewImager(logger)
 	cataloger := catalog.NewCataloger(logger, imager, fs)
@@ -45,7 +44,7 @@ func LumenToolHandler(catalogRef, ocpVersion, packageName, channelName string, l
 		return "", fmt.Errorf("lumen tool failed: %w", err)
 	}
 
-	// 3. Serialize the concrete result into JSON for the agent to understand.
+	// Serialize the concrete result into JSON for the agent to understand.
 	jsonResult, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to serialize lumen results: %w", err)

@@ -26,7 +26,30 @@ AI Assistant (Cursor/Claude/etc.)
     Red Hat Container Registries
 ```
 
+## IDE Integration Setup
 
+The MCP server works with any MCP-compatible client. Here are the setup instructions for VSCode.
+
+### VSCode
+
+1.  Make sure the MCP server binary is built:
+    ```bash
+    make build-mcp
+    ```
+2.  Open your VSCode `.vscode/mcp.json` file.
+3.  Add the following configuration, ensuring the `command` path is an **absolute path** to the `mcp-server` binary on your system.
+```json
+{
+  "mcpServers": {
+    "lumen": {
+      "type": "stdio",
+      "command": "/home/aguidi/go/src/github.com/aguidirh/lumen/bin/mcp-server",
+      "args": []
+    }
+  }
+} 
+```
+4.  Restart VSCode. The `lumen_list` tool should now be available to any MCP-compatible extension.
 
 ## Testing the MCP Server
 
@@ -52,95 +75,52 @@ This will:
 5. Verify all responses
 
 ### Manual Testing
-```bash
-# Start the MCP server manually
-make run-mcp
 
-# Or run the binary directly
+The MCP server is designed for interactive, back-and-forth communication. The `echo ... | ./bin/mcp-server` command will not work because the connection is closed immediately after the command is sent, causing the server to encounter an error.
+
+Follow these steps to test manually:
+
+**1. Start the Server Interactively**
+
+Run the server from your project root. It will wait for input.
+
+```bash
 ./bin/mcp-server
 ```
 
-## Starting the MCP Server
+**2. Send a Request**
 
-**IMPORTANT**: Before configuring your IDE, you must start the MCP server as a background process.
+Once the server is running, copy one of the JSON requests below, paste it into the same terminal, and press **Enter**.
 
-### Start the Server
-```bash
-# Start the MCP server in the background
-make run-mcp &
+**3. View the Response**
 
-# Or run the binary directly in the background
-./bin/mcp-server &
+The server will print the JSON response directly to your terminal and then continue listening for more requests.
+
+**4. Stop the Server**
+
+Press `Ctrl+C` to terminate the server process when you are finished.
+
+### Example Scenarios
+
+Here are some requests you can use for testing:
+
+#### List Catalogs for OCP 4.16
+Copy and paste this JSON into the running server:
+```json
+{"method":"tools/call","params":{"name":"lumen_list","arguments":{"ocpVersion":"4.16","listCatalogs":true}}}
 ```
 
-The server will run continuously in the background, listening for MCP requests from your IDE. You can verify it's running by checking the process:
-
-```bash
-# Check if the server is running
-ps aux | grep mcp-server
+#### List Packages in a Catalog
+Copy and paste this JSON into the running server:
+```json
+{"method":"tools/call","params":{"name":"lumen_list","arguments":{"catalogRef":"registry.redhat.io/redhat/community-operator-index:v4.16"}}}
 ```
 
-### Stop the Server
-When you're done, you can stop the server:
-
-```bash
-# Find and kill the MCP server process
-pkill -f mcp-server
+#### List Channels for a Package
+Copy and paste this JSON into the running server:
+```json
+{"method":"tools/call","params":{"name":"lumen_list","arguments":{"catalogRef":"registry.redhat.io/redhat/community-operator-index:v4.16","packageName":"prometheus"}}}
 ```
-
-## IDE Integration Setup
-
-The MCP server works with any MCP-compatible client. Here are setup instructions for different IDEs:
-
-### Cursor IDE
-
-**Option 1: Using Cursor's MCP Settings**
-1. Open Cursor IDE
-2. Go to Settings → Extensions → MCP
-3. Add a new MCP server with these settings:
-   - **Name**: `lumen`
-   - **Command**: `./bin/mcp-server`
-   - **Working Directory**: `/home/aguidi/go/src/github.com/aguidirh/lumen`
-
-**Option 2: Using Global Configuration File**
-1. Create or edit the global MCP configuration file:
-   - **Linux**: `~/.cursor/mcp.json`
-   - **macOS**: `~/.cursor/mcp.json` 
-   - **Windows**: `%USERPROFILE%\.cursor\mcp.json`
-
-2. Copy the contents of `cursor-config.json` into this file
-
-3. Restart Cursor IDE
-
-**Option 3: Using Project-Level Configuration**
-1. Create an `mcp.json` file in your project root directory
-2. Copy the contents of `cursor-config.json` into this file
-3. Restart Cursor IDE
-
-**Note**: Recent versions of Cursor use JSON configuration files instead of the UI-based setup. The project-level configuration (`mcp.json` in project root) tends to be more reliable than global configuration on some systems.
-
-### Claude Desktop App
-
-1. Locate your Claude Desktop configuration file:
-   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - **Windows**: `%APPDATA%/Claude/claude_desktop_config.json`
-   - **Linux**: `~/.config/Claude/claude_desktop_config.json`
-
-2. Copy the contents of `claude-desktop-config.json` into your configuration file
-3. Restart Claude Desktop
-
-### VSCode
-
-1. Install an MCP extension (like "MCP Client" or "Continue.dev")
-2. Add the configuration from `vscode-settings.json` to your VSCode settings
-3. Restart VSCode
-
-### Other MCP Clients
-
-The server implements the standard MCP protocol, so it should work with any MCP client. Use these connection details:
-- **Command**: `./bin/mcp-server`
-- **Working Directory**: `/home/aguidi/go/src/github.com/aguidirh/lumen`
-- **Protocol**: stdio (reads from stdin, writes to stdout)
 
 ## Available Tool
 
@@ -201,23 +181,6 @@ Introspects operator-framework catalog images to list their contents.
 }
 ```
 
-## Testing Different Scenarios
-
-### List Catalogs for OCP 4.16
-```bash
-echo '{"method":"tools/call","params":{"name":"lumen_list","arguments":{"ocpVersion":"4.16","listCatalogs":true}}}' | ./bin/mcp-server
-```
-
-### List Packages in a Catalog
-```bash
-echo '{"method":"tools/call","params":{"name":"lumen_list","arguments":{"catalogRef":"registry.redhat.io/redhat/community-operator-index:v4.16"}}}' | ./bin/mcp-server
-```
-
-### List Channels for a Package
-```bash
-echo '{"method":"tools/call","params":{"name":"lumen_list","arguments":{"catalogRef":"registry.redhat.io/redhat/community-operator-index:v4.16","packageName":"prometheus"}}}' | ./bin/mcp-server
-```
-
 ## Available Make Targets
 
 For MCP-specific operations:
@@ -227,55 +190,11 @@ For MCP-specific operations:
 
 See the main [README.md](../../README.md) for all available make targets.
 
-## Troubleshooting
-
-### IDE Cannot Connect to MCP Server
-- **First, ensure the MCP server is running**: `ps aux | grep mcp-server`
-- If not running, start it: `./bin/mcp-server &`
-- Restart your IDE after starting the server
-
-### Server Not Starting
-- Ensure binaries are built: `make build-mcp`
-- Check that all dependencies are available: `make tidy`
-
-### Network Issues
-- The tool will show progress messages when pulling images from registries
-- Ensure you have internet connectivity for accessing container registries
-- Check that you have permissions to access Red Hat registries
-
-### Tool Calls Failing
-- Run `make test-mcp` to verify basic functionality
-- Check the server logs for detailed error messages
-- Verify the parameters match the expected schema
-- Ensure the catalog references are valid and accessible
-
 ## What's Next
 
 Once the MCP server is configured in your IDE, you can:
 1. Ask AI assistants to help you explore OpenShift operator catalogs
 2. Get information about available operators and their versions
-3. Analyze operator upgrade paths and channel structures
-4. All with real-time data from official Red Hat registries!
+3. Get information about available operator channels
 
 The AI assistant will be able to use the `lumen_list` tool automatically to answer questions about OpenShift operators and catalogs. 
-
-## Step-by-Step Troubleshooting
-
-### 3. **Restart Cursor Completely**
-1. **Quit Cursor entirely** (not just close the window)
-2. **Kill any lingering processes**:
-   ```bash
-   pkill -f cursor
-   ```
-3. **Start Cursor fresh**
-
-### 4. **Check Cursor's MCP Support**
-Some versions of Cursor have limited or experimental MCP support. Try these approaches:
-
-**Option A: Enable MCP in Settings**
-1. Open Cursor Settings
-2. Search for "MCP" or "Model Context Protocol"
-3. Enable MCP support if there's a toggle
-
-**Option B: Try Alternative Configuration**
-Some Cursor versions expect different configuration formats. Create a `.cursor-server` directory approach: 

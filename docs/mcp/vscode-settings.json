@@ -1,10 +1,9 @@
 {
-  "mcp.servers": [
-    {
-      "name": "lumen",
-      "command": "./bin/mcp-server",
-      "cwd": "/home/aguidi/go/src/github.com/aguidirh/lumen",
-      "args": []
+    "servers": {
+        "lumen": {
+            "type": "stdio",
+            "command": "/home/aguidi/go/src/github.com/aguidirh/lumen/bin/mcp-server",
+            "args": []
+        }
     }
-  ]
-} 
+}
