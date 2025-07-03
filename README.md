@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/logo.jpeg" alt="Lumen Logo" width="200"/>
+  <img src="./assets/pictures/logo.jpeg" alt="Lumen Logo" width="200"/>
 </p>
 
 <p align="center">
@@ -130,6 +130,9 @@ This command will create a `coverage.out` file inside the `test/coverage/` direc
 ```bash
 make view-coverage
 ```
+
+### Demo
+[![asciicast](https://asciinema.org/a/725992.svg)](https://asciinema.org/a/725992)
 
 ## Project Structure
 

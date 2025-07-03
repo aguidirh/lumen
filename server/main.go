@@ -46,8 +46,12 @@ func main() {
 
 		response := handleRequest(request)
 
-		if err := encoder.Encode(response); err != nil {
-			// Don't log here, as it would corrupt stdout
+		// Per JSON-RPC spec, a response must only be sent for requests, not notifications.
+		// A notification is a request object without an "id" member.
+		if request.ID != nil {
+			if err := encoder.Encode(&response); err != nil {
+				// Don't log here, as it would corrupt stdout
+			}
 		}
 	}
 }
@@ -57,8 +61,9 @@ func handleRequest(request MCPRequest) MCPResponse {
 	switch request.Method {
 	case "initialize":
 		response.Result = map[string]interface{}{
+			"protocolVersion": "2024-11-05",
 			"capabilities": map[string]interface{}{
-				"tools": true,
+				"tools": map[string]interface{}{},
 			},
 			"serverInfo": map[string]interface{}{
 				"name":    "lumen-mcp-server",

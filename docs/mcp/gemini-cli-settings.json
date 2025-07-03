@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+	  "lumen": {
+		  "command": "/home/aguidi/go/src/github.com/aguidirh/lumen/bin/mcp-server"
+	  }
+  }
+}
