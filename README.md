@@ -2,7 +2,12 @@
   <img src="./assets/logo.jpeg" alt="Lumen Logo" width="200"/>
 </p>
 
+<p align="center">
+  <span style="font-size:2.5em; font-weight:bold;">lumen</span>
+</p>
+
 ----
+
 `lumen` is a command-line tool for introspecting the contents of OCI container images, with a special focus on operator-framework File-Based Catalogs (FBC). It allows you to pull catalog images, inspect and list their contents, without needing a running Kubernetes cluster.
 
 The name "lumen" is Latin for light. More specifically, it can mean a source of light, a brightness, or an opening for light to enter, like a window. The name was chosen because the tool acts as a lens, allowing you to peer into the contents of an container image, which is otherwise an opaque container image.
@@ -79,6 +84,9 @@ prometheus-operator.v0.38.0
 prometheus-operator.v0.40.0
 ...
 ```
+
+### Demo
+[![asciicast](https://asciinema.org/a/725942.svg)](https://asciinema.org/a/725942)
 
 ## MCP Server Integration
 
